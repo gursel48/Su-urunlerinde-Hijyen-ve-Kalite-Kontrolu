@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Sınav Portalı</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f4f8;
+      margin: 0;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      padding-bottom: 80px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 860px;
+    }
+
+    .menu-container, .quiz-container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      width: 100%;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .menu-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      cursor: pointer;
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+    }
+
+    .menu-btn.locked {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      cursor: not-allowed;
+      order: 999;
+      opacity: 0.85;
+    }
+
+    .quiz-container {
+      display: none;
+      position: relative;
+      padding-top: 85px;
+      min-height: 100vh;
+    }
+
+    .progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 6px;
+      background: #28a745;
+      transition: 0.3s;
+      width: 0%;
+      border-radius: 14px 14px 0 0;
+    }
+
+    .main-menu-btn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: calc(1rem + 4pt);
+      color: #333;
+      padding: 5px 0;
+    }
+
+    .header-info {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding-right: 110px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+      flex: 1;
+      flex-wrap: wrap;
+    }
+
+    .header-subject {
+      font-weight: normal;
+      color: #777;
+      font-size: 0.95rem;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .retry-badge {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffe69c;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .question-title {
+      margin-top: 0;
+      margin-bottom: 16px;
+      line-height: 1.45;
+      font-size: 1.2rem;
+      color: #222;
+    }
+
+    .option-btn {
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      border: 2px solid #e9ecef;
+      background: #f8f9fa;
+      text-align: left;
+      cursor: pointer;
+      font-size: 1.05rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+      position: relative;
+    }
+
+    .option-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+
+    .option-btn:disabled {
+      cursor: default;
+    }
+
+    .option-btn.correct {
+      background: #d4edda !important;
+      border-color: #28a745 !important;
+      color: #155724 !important;
+      font-weight: bold;
+    }
+
+    .option-btn.wrong {
+      background: #f8d7da !important;
+      border-color: #dc3545 !important;
+      color: #721c24 !important;
+      font-weight: bold;
+    }
+
+    .tick {
+      display: inline-block;
+      margin-left: 10px;
+      color: #1f9d45;
+      font-weight: bold;
+      opacity: 0;
+      transform: scale(0.4);
+    }
+
+    .tick.show {
+      animation: popTick 0.45s ease forwards;
+    }
+
+    @keyframes popTick {
+      0%   { opacity: 0; transform: scale(0.4); }
+      60%  { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .explanation {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background: #eaf2f8;
+      border-left: 5px solid #2980b9;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+
+    .nav-controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 18px;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .next-btn { background: #007bff; }
+    .prev-btn {
+      background: #e9ecef;
+      color: #dc3545 !important;
+      border: 1px solid #ddd;
+    }
+
+    .quiz-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      color: #666;
+      font-weight: bold;
+      font-size: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .disclaimer-box {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fdfdfd;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      color: #888;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .disclaimer-title {
+      display: block;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+    }
+
+    .source-tag {
+      position: fixed;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.05);
+      color: #777;
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+      font-weight: bold;
+      z-index: 9999;
+    }
+
+    .reset-set-btn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: #ffc107;
+      border: none;
+      padding: 8px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    @media (max-width: 480px) {
+      .quiz-container {
+        padding-top: 110px;
+      }
+
+      .header-info {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        padding-right: 104px;
+        align-items: flex-start;
+      }
+
+      .header-left {
+        display: block;
+        padding-right: 6px;
+      }
+
+      .main-menu-btn {
+        display: block;
+        font-size: 0.95rem;
+        padding: 0;
+        margin-bottom: 6px;
+      }
+
+      .header-subject {
+        display: block;
+        margin: 0;
+        font-size: 0.82rem;
+        line-height: 1.3;
+        max-width: 100%;
+      }
+
+      .question-title {
+        font-size: 1.05rem;
+      }
+
+      .option-btn {
+        font-size: 1rem;
+        padding: 14px;
+      }
+
+      .reset-set-btn {
+        top: 12px;
+        right: 12px;
+        font-size: 0.75rem;
+        padding: 7px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="menuContainer" class="menu-container">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px;">
+      <h1 id="mainTitle" style="margin:0;">Yükleniyor...</h1>
+      <button onclick="clearAllStatistics()" style="background:#dc3545; color:white; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.75rem;">
+        Verileri Sıfırla
+      </button>
+    </div>
+
+    <div id="menuGrid" class="menu-grid"></div>
+
+    <div class="disclaimer-box">
+      <span class="disclaimer-title">⚠️ Önemli Uyarı</span>
+      Bu sistemde yer alan içerikler yalnızca eğitim amaçlıdır. İçeriklerin kullanımından doğabilecek doğrudan veya dolaylı hiçbir sorumluluk kabul edilmez. Tüm kullanım sorumluluğu kullanıcıya aittir.
+    </div>
+  </div>
+
+  <div id="quizContainer" class="quiz-container">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="header-info">
+      <div class="header-left">
+        <button onclick="showMenu()" class="main-menu-btn">☰ Ana Menü</button>
+        <span id="headerSubject" class="header-subject"></span>
+      </div>
+    </div>
+
+    <button onclick="resetCurrentSet()" class="reset-set-btn">Seti Sıfırla</button>
+
+    <div id="retryBadge" class="retry-badge">Yalnış cevaplanan soru</div>
+    <h2 id="questionText" class="question-title">...</h2>
+
+    <div id="optionsArea"></div>
+
+    <div class="quiz-footer">
+      <div id="footerLeft">Kalan: 0</div>
+      <div id="footerRight">0 / 0</div>
+    </div>
+
+    <div id="explanationArea" class="explanation"></div>
+
+    <div class="nav-controls">
+      <button id="prevBtn" class="nav-btn prev-btn" onclick="goBack()" style="visibility:hidden;">❮ Önceki</button>
+      <button id="nextBtn" class="nav-btn next-btn" onclick="goForward()" style="visibility:hidden;">Yeni Soru ❯</button>
+    </div>
+  </div>
+</div>
+
+<div class="source-tag" id="sourceTag">Kaynak: ...</div>
+
+<script>
+  const CURRENT_SUBJECT = "Su Ürünlerinde Hijyen ve Kalite Kontrolü";
+  const SOURCE_TEXT = "Kaynak: Metne dayalı soru seti";
+  const QUESTIONS_PER_SET = 30;
+
+  const questions = [
+  {
+    "q": "Su ürünlerinin küresel ölçekte hayvansal protein ihtiyacına katkısı yaklaşık ne kadardır?",
+    "o": [
+      "%5",
+      "%10",
+      "%15",
+      "%25"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Metinde su ürünlerinden elde edilen üretimin yaklaşık 4.3 milyar insanın günlük hayvansal protein ihtiyacının %15’ini karşıladığı belirtilir."
+  },
+  {
+    "q": "1960’lı yıllarda dünya genelinde kişi başına düşen yıllık ortalama su ürünleri tüketimi yaklaşık kaç kg’dır?",
+    "o": [
+      "9,9 kg",
+      "12 kg",
+      "15 kg",
+      "18,6 kg"
+    ],
+    "c": 0,
+    "e": "Doğru cevap: A) Metinde 1960’lı yıllarda kişi başına yıllık ortalama su ürünleri tüketiminin 9,9 kg olduğu ifade edilir."
+  },
+  {
+    "q": "Aşağıdakilerden hangisi su ürünleri sektöründe birincil üretim faaliyetidir?",
+    "o": [
+      "Paketleme",
+      "Lojistik",
+      "Balıkçılık ve yetiştiricilik",
+      "Pazarlama"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Birincil üretim faaliyetleri doğrudan balıkçılık (avcılık) ve su ürünleri yetiştiriciliği faaliyetlerini kapsar."
+  },
+  {
+    "q": "Küresel ölçekte su ürünleri sektöründen geçimini sağlayan toplam insan sayısı yaklaşık kaçtır?",
+    "o": [
+      "100 milyon",
+      "300 milyon",
+      "660 ila 820 milyon",
+      "1 milyar"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Araştırmacılar ve aileler dahil edildiğinde sektörün 660 ila 820 milyon insanın geçim kaynağı olduğu belirtilir."
+  },
+  {
+    "q": "2008 yılında yaşanan küresel finansal kriz döneminde su ürünleri ticaretinde yaklaşık ne kadar düşüş yaşanmıştır?",
+    "o": [
+      "%5",
+      "%12,5",
+      "%20",
+      "%30"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Metne göre 2008’de su ürünleri ticaretinde %12,5 oranında düşüş yaşanmıştır."
+  },
+  {
+    "q": "Dünya su ürünleri ihracatında lider ülke hangisidir?",
+    "o": [
+      "ABD",
+      "Norveç",
+      "Çin",
+      "Japonya"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Metinde Çin’in dünya su ürünleri ihracatında tartışmasız lider olduğu belirtilir."
+  },
+  {
+    "q": "Aşağıdakilerden hangisi su ürünleri ithalatında öne çıkan liderlerden biridir?",
+    "o": [
+      "Tayland",
+      "Vietnam",
+      "Avrupa Birliği",
+      "Şili"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Metinde en büyük ithalatçı blok olarak Avrupa Birliği verilir."
+  },
+  {
+    "q": "Aşırı avcılık kapasitesi aşağıdakilerden hangisine yol açar?",
+    "o": [
+      "Üretim artışı",
+      "Ekonomik kayıplar",
+      "İhracat artışı",
+      "Kalite artışı"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Aşırı avcılık kapasitesinin uzun vadede ekonomik kayıplara neden olduğu belirtilir."
+  },
+  {
+    "q": "Türkiye’de su ürünleri avcılığında en baskın bölge hangisidir?",
+    "o": [
+      "Ege",
+      "Marmara",
+      "Doğu Karadeniz",
+      "Akdeniz"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Metinde Türkiye su ürünleri avcılığının lokomotifinin Doğu Karadeniz olduğu ifade edilir."
+  },
+  {
+    "q": "Hijyen kavramı sadece temizlik anlamına mı gelir?",
+    "o": [
+      "Evet",
+      "Hayır",
+      "Kısmen",
+      "Duruma bağlı"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Metinde hijyenin sadece temizlik değil, ürün güvenliğini tehdit eden unsurların sistematik yönetimi olduğu açıklanır."
+  },
+  {
+    "q": "Gıda güvenliği aşağıdaki tehlikelerden hangilerini kapsar?",
+    "o": [
+      "Sadece biyolojik",
+      "Fiziksel, kimyasal ve biyolojik",
+      "Sadece kimyasal",
+      "Sadece fiziksel"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Gıda güvenliği fiziksel, kimyasal ve biyolojik tehlikelerin bertaraf edilmesi için alınan tedbirler bütünüdür."
+  },
+  {
+    "q": "Kontaminasyon neyi ifade eder?",
+    "o": [
+      "Temizlik işlemi",
+      "Gıdanın kirlenmesi",
+      "Soğutma işlemi",
+      "Paketleme"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Kontaminasyon; patojen, kimyasal, parazit veya yabancı maddeler nedeniyle ürün, araç-gereç veya ortamda meydana gelen olumsuz etkilenmedir."
+  },
+  {
+    "q": "Aşağıdakilerden hangisi izlenebilirlik tanımına uygundur?",
+    "o": [
+      "Ürünün depolanması",
+      "Gıdanın geriye dönük takip edilmesi",
+      "Ürünün paketlenmesi",
+      "Ürünün taşınması"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) İzlenebilirlik, gıdanın ve ilgili unsurların üretim, işleme ve dağıtım aşamalarında geriye dönük takip edilebilmesidir."
+  },
+  {
+    "q": "ISO 22000 standardı aşağıdakilerden hangisini kapsar?",
+    "o": [
+      "Sadece HACCP",
+      "Sadece PRP",
+      "HACCP + PRP + yönetim sistemi yaklaşımı",
+      "Sadece mevzuat"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) ISO 22000 sadece HACCP değil; ön gereksinim programları ve yönetim sistemi yaklaşımını da kapsayan geniş bir standarttır."
+  },
+  {
+    "q": "HACCP sisteminin temel yaklaşımı nedir?",
+    "o": [
+      "Son ürün kontrolü",
+      "Riskleri oluşmadan önlemek",
+      "Satış artırmak",
+      "Paketleme geliştirmek"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) HACCP, gıda güvenliği ile ilgili problemlerin ortaya çıkmadan önlenmesini esas alan bir sistemdir."
+  },
+  {
+    "q": "HACCP ilk olarak hangi kurumun ihtiyaçları doğrultusunda geliştirilmiştir?",
+    "o": [
+      "WHO",
+      "FAO",
+      "NASA",
+      "AB"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) HACCP sistemi 1960’lı yıllarda Amerikan uzay programı için geliştirilmiştir."
+  },
+  {
+    "q": "Türkiye’de HACCP hangi yıl Türk Gıda Kodeksi ile zorunlu hale gelmiştir?",
+    "o": [
+      "1990",
+      "1997",
+      "2003",
+      "1985"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Metinde 16 Kasım 1997 tarihli Türk Gıda Kodeksi ile HACCP sisteminin uygulanmasının zorunlu hale geldiği belirtilir."
+  },
+  {
+    "q": "KKN kısaltması neyi ifade eder?",
+    "o": [
+      "Kritik kontrol noktası",
+      "Kalite kontrol noktası",
+      "Kimyasal kontrol noktası",
+      "Kontrolsüz nokta"
+    ],
+    "c": 0,
+    "e": "Doğru cevap: A) KKN, kontrol altında tutulması halinde tehlikelerin kabul edilebilir seviyeye indirildiği işlem noktalarını ifade eder."
+  },
+  {
+    "q": "Tehlike analizinin ilk temel aşaması aşağıdakilerden hangisidir?",
+    "o": [
+      "Paketleme",
+      "Tehlikenin tanımlanması",
+      "Satış",
+      "Depolama"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Tehlike analizinin ilk içeriği tehlikenin spesifik olarak tanımlanmasıdır."
+  },
+  {
+    "q": "Aşağıdakilerden hangisi bulaşma kaynaklarından biri değildir?",
+    "o": [
+      "Tarımsal ilaçlar",
+      "Hayvansal hastalıklar",
+      "Doğal toksinler",
+      "ISO standardı"
+    ],
+    "c": 3,
+    "e": "Doğru cevap: D) Metinde tarımsal ilaç kalıntıları, hayvansal hastalıklar ve doğal toksinler bulaşma kaynakları arasında sayılır; ISO standardı bir bulaşma kaynağı değildir."
+  },
+  {
+    "q": "Çapraz kontaminasyon neyi ifade eder?",
+    "o": [
+      "Ürün paketleme",
+      "Kirlenmiş gıdanın diğer gıdayı etkilemesi",
+      "Soğutma işlemi",
+      "Taşıma işlemi"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Çapraz kontaminasyon, gıdanın kirlenmiş diğer gıdalarla aynı yerde veya kirli ortamda saklanması sonucu oluşan bulaşmadır."
+  },
+  {
+    "q": "Aşağıdaki mikroorganizmalardan hangisi 0°C’de gelişebilir?",
+    "o": [
+      "Salmonella spp.",
+      "Listeria monocytogenes",
+      "Vibrio parahaemolyticus",
+      "Shigella spp."
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Metinde Listeria monocytogenes’in 0°C’de gelişebildiği belirtilmiştir."
+  },
+  {
+    "q": "Tehlikelerin dokümantasyonu sürecinde ilk adım aşağıdakilerden hangisidir?",
+    "o": [
+      "Güncelleme",
+      "Tasnif ve değerlendirme",
+      "Onay",
+      "Paketleme"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Belirlenen tehlikelerin kayıt altına alınmasında ilk adım tasnif ve değerlendirmedir."
+  },
+  {
+    "q": "Aşağıdaki eşleştirmelerden hangisi doğrudur? I. HACCP II. ISO 22000 III. PRP",
+    "o": [
+      "I-a, II-b, III-c",
+      "I-b, II-c, III-a",
+      "I-c, II-a, III-b",
+      "I-b, II-a, III-c"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) HACCP = tehlike kontrol sistemi, ISO 22000 = yönetim sistemi standardı, PRP = ön gereksinim programlarıdır. (a=Ön gereksinim programları, b=Tehlike kontrol sistemi, c=Yönetim sistemi standardı)"
+  },
+  {
+    "q": "Su ürünleri işletmelerinde hijyen hangi aşamada başlar?",
+    "o": [
+      "Paketleme",
+      "Depolama",
+      "Tesis tasarımı",
+      "Satış"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Metinde hijyenik güvenliğin tesisin tasarım aşamasında başladığı ifade edilir."
+  },
+  {
+    "q": "Aşağıdakilerden hangisi standart işletme bölümlerinden biri değildir?",
+    "o": [
+      "Hammadde kabul",
+      "Paketleme",
+      "Banka işlemleri",
+      "Soğuk muhafaza"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Metinde işletme bölümleri arasında banka işlemleri sayılmamıştır."
+  },
+  {
+    "q": "Temiz ve kirli alan ayrımı neden önemlidir?",
+    "o": [
+      "Üretimi hızlandırmak",
+      "Çapraz bulaşmayı önlemek",
+      "Enerji tasarrufu sağlamak",
+      "Personel sayısını azaltmak"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Üretim alanları ile sosyal alanların ayrılması bulaşma riskini azaltır."
+  },
+  {
+    "q": "İşletme çevresinde aşağıdakilerden hangisi bulunmamalıdır?",
+    "o": [
+      "Su birikintisi",
+      "Temiz alan",
+      "Düzenli yapı",
+      "Boyalı dış cephe"
+    ],
+    "c": 0,
+    "e": "Doğru cevap: A) Metinde zararlıların üremesine uygun ortam yaratan su birikintilerinin bulunmaması gerektiği belirtilir."
+  },
+  {
+    "q": "Zeminlerin önemli özelliklerinden biri aşağıdakilerden hangisidir?",
+    "o": [
+      "Ahşap olması",
+      "Su geçirmesi",
+      "Kaymaz olması",
+      "Renkli olması"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Zeminlerin ıslakken dahi kaygan olmayan yapıda olması gerekir."
+  },
+  {
+    "q": "Drenaj sisteminin temel amacı nedir?",
+    "o": [
+      "Işık sağlamak",
+      "Sıvı atıkları uzaklaştırmak",
+      "Havalandırma sağlamak",
+      "Depolama yapmak"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Drenaj sistemi sıvı atıkları ortamdan uzaklaştırmak için gereklidir."
+  },
+  {
+    "q": "Zemin eğimi sağlanmazsa ne olur?",
+    "o": [
+      "Üretim artar",
+      "Su birikintisi oluşur",
+      "Hijyen artar",
+      "Depolama kolaylaşır"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Eğimsiz zeminler su birikintisine yol açar ve bakteri üremesi için ortam oluşturur."
+  },
+  {
+    "q": "Duvar ve zemin birleşim noktaları nasıl olmalıdır?",
+    "o": [
+      "Keskin köşeli",
+      "Oval ve pürüzsüz",
+      "Ahşap",
+      "Kırık"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Metne göre duvar-zemin ve duvar-tavan birleşimleri ovalleştirilmiş yapıda olmalıdır."
+  },
+  {
+    "q": "Pencerelerde sineklik bulunmasının amacı nedir?",
+    "o": [
+      "Işık artırmak",
+      "Haşere girişini önlemek",
+      "Sıcaklığı artırmak",
+      "Görünümü güzelleştirmek"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Açılabilir pencereler haşere ve sinek girişini engelleyecek ince gözenekli tellerle kaplanmalıdır."
+  },
+  {
+    "q": "Üretim sırasında pencereler neden kapalı tutulmalıdır?",
+    "o": [
+      "Enerji tasarrufu",
+      "Küf sporlarını ve diğer kontaminantları engellemek",
+      "Gürültü azaltmak",
+      "Işığı azaltmak"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Üretim sırasında dışarıdan hava yoluyla gelebilecek küf sporları ve kontaminantları engellemek için pencereler kapalı tutulmalıdır."
+  },
+  {
+    "q": "Kapılar hangi özellikte olmalıdır?",
+    "o": [
+      "Ahşap ve gözenekli",
+      "Pürüzsüz ve su geçirmez",
+      "Açık kalmalı",
+      "Kırılgan"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Kapılar düz, pürüzsüz, girinti-çıkıntısı olmayan ve su geçirmeyen yüzeylere sahip olmalıdır."
+  },
+  {
+    "q": "Tuvalet kapıları nereye doğrudan açılmamalıdır?",
+    "o": [
+      "Koridora",
+      "Üretim alanına",
+      "Depoya",
+      "Ofise"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Tuvalet kapıları gıdaların işlendiği üretim alanlarına doğrudan açılmamalıdır."
+  },
+  {
+    "q": "El yıkama evyeleri nasıl olmalıdır?",
+    "o": [
+      "Manuel",
+      "Temassız sistemli",
+      "Kapalı",
+      "Kullanılmayan"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) El temasını önlemek için pedallı veya fotoselli sistemlerle donatılmalıdır."
+  },
+  {
+    "q": "Hijyen bariyerlerinin amacı nedir?",
+    "o": [
+      "Personeli durdurmak",
+      "Mikroorganizma yükünü azaltmak",
+      "Üretimi hızlandırmak",
+      "Işık sağlamak"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Hijyen bariyerleri üretim alanına girişte personel üzerindeki mikroorganizma yükünü azaltmak için kurulur."
+  },
+  {
+    "q": "Dezenfeksiyon havuzlarının derinliği neye bağlıdır?",
+    "o": [
+      "Ürün çeşidine",
+      "Tuvalet tipine",
+      "Personel sayısına",
+      "Üretim miktarına"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Havuz derinliği tesiste alaturka veya alafranga tuvalet bulunmasına göre belirlenir."
+  },
+  {
+    "q": "Soyunma dolapları nasıl olmalıdır?",
+    "o": [
+      "Tek bölmeli",
+      "Çift bölmeli",
+      "Açık",
+      "Ahşap"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Dolaplar sivil giysi ve iş kıyafeti için çift bölmeli tasarlanmalıdır."
+  },
+  {
+    "q": "Aydınlatma nasıl olmalıdır?",
+    "o": [
+      "Karanlık",
+      "Gün ışığına eşdeğer",
+      "Renkli",
+      "Zayıf"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) İşletme içi aydınlatma gün ışığına eşdeğer kalitede olmalıdır."
+  },
+  {
+    "q": "Aydınlatma sistemlerinde hangi önlem alınmalıdır?",
+    "o": [
+      "Cam açık bırakılmalı",
+      "Kırılmaya karşı koruma",
+      "Işık azaltılmalı",
+      "Renk değiştirme"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Aydınlatma armatürleri kırılma durumunda cam parçalarının ürüne dökülmesini önlemek için korumalı olmalıdır."
+  },
+  {
+    "q": "Havalandırmanın temel amaçlarından biri aşağıdakilerden hangisidir?",
+    "o": [
+      "Sadece serinlik",
+      "Sıcaklık, nem, koku ve toz kontrolü",
+      "Depolama",
+      "Paketleme"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Havalandırma; sıcaklık artışını, buhar yoğunlaşmasını, tozu ve kokuyu kontrol etmek için tasarlanmalıdır."
+  },
+  {
+    "q": "Kimyasallar nasıl depolanmalıdır?",
+    "o": [
+      "Açıkta",
+      "Gıdalarla birlikte",
+      "Ayrı ve etiketli",
+      "Rastgele"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Temizlik, dezenfeksiyon, pestisit ve bakım kimyasalları ayrı depolanmalı ve etiketli olmalıdır."
+  },
+  {
+    "q": "Aşağıdakilerden hangisi ekipman için yasaktır?",
+    "o": [
+      "Paslanmaz çelik",
+      "Gıda uyumlu plastik",
+      "Ahşap",
+      "Metal"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Metinde işleme hattında tahta palet, tahta kasa ve ahşap saplı aletlerin kullanılmaması gerektiği belirtilir."
+  },
+  {
+    "q": "Ekipmanların yüzeyi nasıl olmalıdır?",
+    "o": [
+      "Pürüzlü",
+      "Gözenekli",
+      "Pürüzsüz",
+      "Ahşap"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Ekipmanlar kolay temizlenebilir ve pürüzsüz yüzeyli olmalıdır."
+  },
+  {
+    "q": "Aşağıdaki eşleştirmelerden hangisi doğrudur? I. Drenaj II. Hijyen bariyeri III. Havalandırma",
+    "o": [
+      "I-b, II-a, III-c",
+      "I-a, II-b, III-c",
+      "I-c, II-a, III-b",
+      "I-b, II-c, III-a"
+    ],
+    "c": 0,
+    "e": "Doğru cevap: A) Drenaj = sıvı uzaklaştırma, hijyen bariyeri = mikroorganizma azaltma, havalandırma = hava kalitesi kontrolüdür. (a=Mikroorganizma azaltma, b=Sıvı uzaklaştırma, c=Hava kalitesi)"
+  },
+  {
+    "q": "Ekipmanların sürekli bakımlı tutulmasının temel amacı nedir?",
+    "o": [
+      "Görünüm",
+      "Hijyen ve güvenlik",
+      "Maliyet artırmak",
+      "Enerji tüketmek"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Ekipmanların sağlam, bakımlı ve çalışır durumda tutulması hijyen ve süreç güvenliği için gereklidir."
+  },
+  {
+    "q": "Aşağıdakilerden hangisi işletmede izlenmesi gereken kritik parametrelerden biridir?",
+    "o": [
+      "Renk",
+      "Sıcaklık",
+      "Paket şekli",
+      "Marka"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Metinde basınç ve sıcaklık gibi parametreleri ölçen ve kaydeden cihazların bulunması gerektiği belirtilir."
+  },
+  {
+    "q": "Su güvenliği neyi ifade eder?",
+    "o": [
+      "Su tüketimini artırmak",
+      "Su kalitesinin kontrol edilmesi ve güvenli olması",
+      "Su depolamak",
+      "Su satışı"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Üretimde kullanılan suyun temiz, kontrol edilmiş ve güvenli olması gerekir."
+  },
+  {
+    "q": "Temizlik ve dezenfeksiyon nasıl yürütülmelidir?",
+    "o": [
+      "Rastgele",
+      "Düzenli ve sistematik",
+      "Sadece ihtiyaç olunca",
+      "Yılda bir"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Metne göre temizlik ve dezenfeksiyon düzenli ve sistematik yürütülmelidir."
+  },
+  {
+    "q": "Aşağıdakilerden hangisi su ürünlerinde kalite kriterlerinden biridir?",
+    "o": [
+      "Reklam",
+      "Tazelik",
+      "Marka değeri",
+      "Fiyat"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Kalite kriterleri arasında tazelik yer alır."
+  },
+  {
+    "q": "Su ürünlerinde kalite değerlendirmesinde aşağıdakilerden hangisi kullanılır?",
+    "o": [
+      "Koku",
+      "Logo",
+      "Ambalaj rengi",
+      "Firma adı"
+    ],
+    "c": 0,
+    "e": "Doğru cevap: A) Metinde kalite değerlendirmesinde görünüm, koku ve yapısal özelliklerin dikkate alındığı belirtilir."
+  },
+  {
+    "q": "Biyotoksinler nedir?",
+    "o": [
+      "Vitaminler",
+      "Zararsız maddeler",
+      "Zararlı toksinler",
+      "Proteinler"
+    ],
+    "c": 2,
+    "e": "Doğru cevap: C) Biyotoksinler bazı deniz canlılarında biriken ve insan sağlığı için tehlikeli olan toksinlerdir."
+  },
+  {
+    "q": "Lipofilik biyotoksinlerin temel özelliği nedir?",
+    "o": [
+      "Suda çözünür",
+      "Yağda çözünür",
+      "Gaz halindedir",
+      "Katıdır"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Lipofilik biyotoksinler yağda çözünebilen toksinlerdir."
+  },
+  {
+    "q": "Aşağıdakilerden hangisi lipofilik biyotoksinlerden biridir?",
+    "o": [
+      "DSP",
+      "ISO",
+      "HACCP",
+      "PRP"
+    ],
+    "c": 0,
+    "e": "Doğru cevap: A) DSP, metinde verilen lipofilik biyotoksinlerden biridir."
+  },
+  {
+    "q": "Tetrodotoksin ne tür bir toksindir?",
+    "o": [
+      "Vitamin",
+      "Nörotoksin",
+      "Protein",
+      "Mineral"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Tetrodotoksin güçlü bir nörotoksindir."
+  },
+  {
+    "q": "Tetrodotoksin ile ilgili aşağıdaki ifadelerden hangisi doğrudur?",
+    "o": [
+      "Zararsızdır",
+      "Ölümcül olabilir",
+      "Vitamin içerir",
+      "Tat verir"
+    ],
+    "c": 1,
+    "e": "Doğru cevap: B) Metinde tetrodotoksinin insan için ölümcül olabileceği belirtilir."
+  },
+  {
+    "q": "Aşağıdaki eşleştirmelerden hangisi doğrudur? I. Biyotoksin II. Lipofilik toksin III. Tetrodotoksin",
+    "o": [
+      "I-b, II-a, III-c",
+      "I-a, II-b, III-c",
+      "I-c, II-a, III-b",
+      "I-b, II-c, III-a"
+    ],
+    "c": 0,
+    "e": "Doğru cevap: A) Biyotoksin = doğal zararlı maddeler, lipofilik toksin = yağda çözünen toksin, tetrodotoksin = nörotoksindir. (a=Yağda çözünen toksin, b=Doğal zararlı maddeler, c=Nörotoksin)"
+  }
+];
+
+  document.getElementById("mainTitle").textContent = `${CURRENT_SUBJECT} Deneme Sınavı`;
+  document.getElementById("headerSubject").textContent = CURRENT_SUBJECT;
+  document.getElementById("sourceTag").textContent = SOURCE_TEXT;
+  document.title = CURRENT_SUBJECT;
+
+  if (performance.navigation.type === performance.navigation.TYPE_RELOAD || !sessionStorage.getItem("session_active")) {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith(storagePrefix())) localStorage.removeItem(k);
+    });
+    sessionStorage.setItem("session_active", "true");
+  }
+
+  let currentQuestions = [];
+  let currentIndex = 0;
+  let solvedIndex = -1;
+  let userAnswers = {};
+  let currentSetKey = "";
+  let stats = { correct: 0, wrong: 0 };
+
+  function storagePrefix() {
+    return "exam_" + CURRENT_SUBJECT.replace(/\s+/g, "_") + "_";
+  }
+
+  function setStateKey(index) {
+    return storagePrefix() + "state_set_" + index;
+  }
+
+  function normalizeQuestion(q, originalIndex) {
+    return {
+      id: q.id || ("q_" + originalIndex + "_" + Math.random().toString(36).slice(2, 8)),
+      originalNo: originalIndex + 1,
+      q: q.q,
+      o: [...q.o],
+      c: q.c,
+      e: q.e || "",
+      isRetry: q.isRetry || false,
+      retryFrom: q.retryFrom || null,
+      retryCount: q.retryCount || 0,
+      answeredCorrectly: q.answeredCorrectly || false
+    };
+  }
+
+  function initMenu() {
+    const menuGrid = document.getElementById("menuGrid");
+    menuGrid.innerHTML = "";
+
+    const totalSets = Math.ceil(questions.length / QUESTIONS_PER_SET);
+
+    let setsPerButton = 1;
+    let buttonCount = totalSets;
+
+    if (buttonCount > 10) {
+      setsPerButton = 2;
+      buttonCount = Math.ceil(totalSets / setsPerButton);
+    }
+
+    buttonCount = Math.min(buttonCount, 10);
+
+    for (let i = 0; i < buttonCount; i++) {
+      const startSetNo = i * setsPerButton + 1;
+      const endSetNo = Math.min(startSetNo + setsPerButton - 1, totalSets);
+
+      const start = (startSetNo - 1) * QUESTIONS_PER_SET;
+      const end = Math.min(endSetNo * QUESTIONS_PER_SET, questions.length);
+
+      if (start >= questions.length) continue;
+
+      const key = setStateKey(i);
+
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      const solved = saved ? Object.keys(saved.userAnswers || {}).length : 0;
+      const correct = saved?.stats?.correct || 0;
+      const wrong = saved?.stats?.wrong || 0;
+
+      const totalCurrent = saved?.currentQuestions?.length || (end - start);
+      const isCompleted = saved ? (solved >= totalCurrent && totalCurrent > 0) : false;
+
+      const label = startSetNo === endSetNo
+        ? `Deneme-${startSetNo}`
+        : `Deneme-${startSetNo}-${endSetNo}`;
+
+      const btn = document.createElement("button");
+      btn.className = `menu-btn ${isCompleted ? "locked" : ""}`;
+      btn.innerHTML = `
+        <strong>${label}</strong><br>
+        <small>${end - start} Soru | Çözülen ${solved} (Doğru ${correct} Yanlış ${wrong})</small>
+      `;
+
+      if (!isCompleted) {
+        btn.onclick = () => startSet(i, key, start, end);
+      }
+
+      menuGrid.appendChild(btn);
+    }
+  }
+
+  function startSet(idx, key, start, end) {
+    currentSetKey = key;
+
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+
+    if (saved) {
+      currentQuestions = saved.currentQuestions;
+      currentIndex = saved.currentIndex;
+      solvedIndex = saved.solvedIndex;
+      userAnswers = saved.userAnswers || {};
+      stats = saved.stats || { correct: 0, wrong: 0 };
+    } else {
+      currentQuestions = questions.slice(start, end).map((q, i) => normalizeQuestion(q, start + i));
+      currentIndex = 0;
+      solvedIndex = -1;
+      userAnswers = {};
+      stats = { correct: 0, wrong: 0 };
+      saveState();
+    }
+
+    document.getElementById("menuContainer").style.display = "none";
+    document.getElementById("quizContainer").style.display = "block";
+    document.getElementById("headerSubject").textContent = CURRENT_SUBJECT;
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function getQuestionTitle(q) {
+    return `Soru-${q.originalNo}: ${q.q}`;
+  }
+
+  function loadQuestion() {
+    const q = currentQuestions[currentIndex];
+    const progress = ((currentIndex + 1) / currentQuestions.length) * 100;
+
+    document.getElementById("progressBar").style.width = progress + "%";
+    document.getElementById("footerLeft").textContent = `Kalan: ${Math.max(currentQuestions.length - (currentIndex + 1), 0)}`;
+    document.getElementById("footerRight").textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
+    document.getElementById("questionText").textContent = getQuestionTitle(q);
+
+    const retryBadge = document.getElementById("retryBadge");
+    retryBadge.style.display = q.isRetry ? "block" : "none";
+
+    const optArea = document.getElementById("optionsArea");
+    const expArea = document.getElementById("explanationArea");
+    optArea.innerHTML = "";
+    expArea.style.display = "none";
+    expArea.innerHTML = "";
+
+    const letters = ["A", "B", "C", "D"];
+
+    q.o.forEach((opt, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.innerHTML = `<strong>${letters[idx]})</strong> ${opt}`;
+
+      if (currentIndex <= solvedIndex) {
+        btn.disabled = true;
+        const userChoice = userAnswers[currentIndex];
+
+        if (idx === userChoice) {
+          if (userChoice === q.c) {
+            btn.classList.add("correct");
+            btn.innerHTML += ` <span class="tick show">✔</span>`;
+          } else {
+            btn.classList.add("wrong");
+          }
+        }
+
+        if (userChoice === q.c) {
+          expArea.innerHTML = `<strong>Açıklama:</strong> ${q.e}`;
+          expArea.style.display = "block";
+        } else if (q.isRetry) {
+          if (idx === q.c) {
+            btn.classList.add("correct");
+            btn.innerHTML += ` <span class="tick show">✔</span>`;
+          }
+          expArea.innerHTML = `<strong>Açıklama:</strong> ${q.e}`;
+          expArea.style.display = "block";
+        }
+      } else {
+        btn.onclick = () => selectOption(idx);
+      }
+
+      optArea.appendChild(btn);
+    });
+
+    document.getElementById("prevBtn").style.visibility = currentIndex > 0 ? "visible" : "hidden";
+    document.getElementById("nextBtn").style.visibility = currentIndex <= solvedIndex ? "visible" : "hidden";
+  }
+
+  function selectOption(idx) {
+    const q = currentQuestions[currentIndex];
+    const isCorrect = idx === q.c;
+
+    userAnswers[currentIndex] = idx;
+    solvedIndex = Math.max(solvedIndex, currentIndex);
+
+    if (isCorrect) {
+      stats.correct++;
+      q.answeredCorrectly = true;
+    } else {
+      stats.wrong++;
+
+      if (!q.isRetry) {
+        const retryQuestion = {
+          ...q,
+          isRetry: true,
+          retryFrom: q.originalNo,
+          retryCount: 1
+        };
+
+        const insertIndex = Math.min(currentIndex + 6, currentQuestions.length);
+        currentQuestions.splice(insertIndex, 0, retryQuestion);
+      }
+    }
+
+    saveState();
+    loadQuestion();
+  }
+
+  function saveState() {
+    localStorage.setItem(currentSetKey, JSON.stringify({
+      currentQuestions,
+      currentIndex,
+      solvedIndex,
+      userAnswers,
+      stats
+    }));
+  }
+
+  function goForward() {
+    if (currentIndex < solvedIndex) {
+      const resumeIndex = Math.min(solvedIndex + 1, currentQuestions.length - 1);
+      currentIndex = resumeIndex;
+    } else if (currentIndex < currentQuestions.length - 1) {
+      currentIndex++;
+    } else {
+      return showMenu();
+    }
+
+    saveState();
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function goBack() {
+    if (currentIndex > 0) {
+      currentIndex--;
+      saveState();
+      loadQuestion();
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function showMenu() {
+    document.getElementById("quizContainer").style.display = "none";
+    document.getElementById("menuContainer").style.display = "block";
+    initMenu();
+    window.scrollTo(0, 0);
+  }
+
+  function clearAllStatistics() {
+    if (confirm("Tüm veriler sıfırlansın mı?")) {
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith(storagePrefix())) localStorage.removeItem(k);
+      });
+      initMenu();
+    }
+  }
+
+  function resetCurrentSet() {
+    if (confirm("Bu deneme sıfırlansın mı?")) {
+      localStorage.removeItem(currentSetKey);
+      showMenu();
+    }
+  }
+
+  initMenu();
+</script>
+</body>
+</html>
